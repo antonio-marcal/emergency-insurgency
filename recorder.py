@@ -19,13 +19,8 @@ VEHICLE_SPEED = 6.25 # Increased speed of the vehicle in meters per second
 
 
 class PurePursuitController(Node):
-    def __init__(self, filename):
+    def __init__(self):
         super().__init__('pure_pursuit_controller')
-
-        # Load waypoints from the specified CSV file
-        waypoints = pd.read_csv(filename)
-        self.waypoint_x = waypoints['x'].to_numpy()
-        self.waypoint_y = waypoints['y'].to_numpy()
 
         # Initialize vehicle state
         self.vehicle_x = None
@@ -74,8 +69,7 @@ class PurePursuitController(Node):
 
 def main():
     rclpy.init()
-    filename = 'waypoints.csv' # Specify the CSV file with waypoints
-    pure_pursuit_controller = PurePursuitController(filename)
+    pure_pursuit_controller = PurePursuitController()
     
     try:
         rclpy.spin(pure_pursuit_controller)
