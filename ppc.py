@@ -13,7 +13,7 @@ import csv
 import time
 
 MAX_STEERING_ANGLE = np.radians(60) # Maximum steering angle in radians
-WHEELBASE = 2.68 # Wheelbase of the Harley-Davidson Low Rider motorcycle in meters
+WHEELBASE = 4.0 # Wheelbase of the Ford Ambulance in meters
 LOOKAHEAD_DISTANCE = 20 # Increased look-ahead distance in meters
 VEHICLE_SPEED = 6.0 # Increased speed of the vehicle in meters per second
 
@@ -105,7 +105,7 @@ class PurePursuitController(Node):
 
 def main():
     rclpy.init()
-    filename = 'waypoints.csv' # Specify the CSV file with waypoints
+    filename = 'waypoints_phase1_expected.csv' # Specify the CSV file with waypoints
     pure_pursuit_controller = PurePursuitController(filename)
     
     try:

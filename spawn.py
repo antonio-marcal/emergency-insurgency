@@ -45,7 +45,8 @@ def spawn_specific_vehicle(world, blueprint_library, vehicle_type, location, rot
 
    if vehicle:
 
-       print(f"Spawned {vehicle.type_id} at location {location} with rotation {rotation}.")
+       if __name__ == "__main__":
+            print(f"Spawned {vehicle.type_id} at location {location} with rotation {rotation}.")
 
        return vehicle
 
@@ -54,8 +55,6 @@ def spawn_specific_vehicle(world, blueprint_library, vehicle_type, location, rot
        print(f"Failed to spawn {vehicle_type} at location {location}.")
 
        return None
-
-
 
 
 def main():
@@ -71,7 +70,7 @@ def main():
 
     # Set the world to nighttime
 
-   weather = carla.WeatherParameters(cloudiness=0.0,precipitation=0.0,sun_altitude_angle=-90.0)
+   weather = carla.WeatherParameters(cloudiness=00.0,precipitation=00.0,sun_altitude_angle=10.0)
 
 
    world.set_weather(weather)
@@ -273,15 +272,6 @@ def main():
    spawn_rotation13 = (0, 90, 0)  # Example rotation (pitch, yaw, roll)
 
    spawn_specific_vehicle(world, blueprint_library, specific_vehicle_type8, spawn_location13, spawn_rotation13)
-
-
-
-
-   
-
-
-   
-
 
 if __name__ == '__main__':
 
