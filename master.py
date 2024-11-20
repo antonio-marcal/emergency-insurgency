@@ -2,6 +2,7 @@ import rclpy
 import threading
 import ppc
 import YOLO
+import u_turn
 import spawn
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive  # Message type for vehicle control
@@ -19,15 +20,15 @@ class VehicleControlNode(Node):
             10  # Queue size
         )
 
-        # Subscriber to listen for the stop flag
+        # Subscriber to listen for the action flag
         self.subscription = self.create_subscription(
-            Bool,  # Message type for stop flag
-            '/carla/ego_vehicle/stop_flag',  # Topic name for stop flag
-            self.stop_callback,  # Callback function when stop flag is received
+            Bool,
+            '/carla/ego_vehicle/action_flag',  # Topic name for action flag
+            self.action_callback,
             10  # Queue size
         )
 
-        self.stop_flag = False  # Flag to track if the vehicle should stop
+        self.action_flag = False  # Flag to track if the vehicle should stop
 
         # Timer to send driving commands continuously every 0.1 seconds
         self.timer = self.create_timer(0.1, self.drive)
@@ -38,20 +39,38 @@ class VehicleControlNode(Node):
         self.control_thread = None
         self.detection_thread = None
 
+        self.current_fase = 1
+
+    def phase_1(self):
+        
+        if self.sub_detection is None:
+            # Start the detection node in a new thread
+            self.sub_detection = YOLO.YoloDetectionNode()
+            self.detection_thread = threading.Thread(target=rclpy.spin, args=(self.sub_detection,))
+            self.detection_thread.start()
+
+        if self.sub_control is None:
+            # Start the control node in a new thread
+            self.sub_control = ppc.PurePursuitController('waypoints_phase1_expected.csv')
+            self.control_thread = threading.Thread(target=rclpy.spin, args=(self.sub_control,))
+            self.control_thread.start()
+
+    def phase_2(self):
+        if self.sub_control is None:
+            # Start the control node in a new thread
+            self.sub_control = u_turn.CustomControlNode()
+            self.control_thread = threading.Thread(target=rclpy.spin, args=(self.sub_control,))
+            self.control_thread.start()
+
     def drive(self):
         """Choose which control and detection node to use"""
-        if not self.stop_flag:
-            if self.sub_detection is None:
-                # Start the detection node in a new thread
-                self.sub_detection = YOLO.YoloDetectionNode()
-                self.detection_thread = threading.Thread(target=rclpy.spin, args=(self.sub_detection,))
-                self.detection_thread.start()
+        if not self.action_flag:
 
-            if self.sub_control is None:
-                # Start the control node in a new thread
-                self.sub_control = ppc.PurePursuitController('waypoints_phase1_expected.csv')
-                self.control_thread = threading.Thread(target=rclpy.spin, args=(self.sub_control,))
-                self.control_thread.start()
+            match self.current_fase:
+                case 1:
+                    self.phase_1()
+                case 2:
+                    self.phase_2()
 
         else:
             if self.sub_control is not None:
@@ -68,12 +87,17 @@ class VehicleControlNode(Node):
                     self.detection_thread.join()  # Wait for the thread to finish
                     self.detection_thread = None
 
-            self.brake()  # Call the brake function if stop flag is set
+            self.action_flag = False
 
-    def stop_callback(self, msg):
-        """Callback function to handle stop flag messages."""
+            if self.current_fase == 1:
+                self.brake()
+
+            self.current_fase += 1
+
+    def action_callback(self, msg):
+        """Callback function to handle action flag messages."""
         if msg.data:
-            self.stop_flag = True  # Set stop flag to True if stop signal is received
+            self.action_flag = True  # Set stop flag to True if stop signal is received
 
     def brake(self):
         """Stop the vehicle by setting the speed to zero."""

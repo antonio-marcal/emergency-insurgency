@@ -21,7 +21,7 @@ class YoloDetectionNode(Node):
         # Publisher to send a stop flag when a stop sign is detected
         self.stop_publisher = self.create_publisher(
             Bool, # Message type
-            '/carla/ego_vehicle/stop_flag', # Topic name
+            '/carla/ego_vehicle/action_flag', # Topic name
             10) # Queue size
         
         # Setup for YOLOv3
