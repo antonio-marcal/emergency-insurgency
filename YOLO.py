@@ -60,7 +60,7 @@ class YoloDetectionNode(Node):
                 confidence = scores[class_id] # Get the highest confidence score
 
                 # Check if the detection is a person (class ID 0) and confidence is above threshold
-                if class_id == 0 and confidence > 0.25:
+                if class_id == 0 and confidence > 0.8:
                     # Get bounding box coordinates and scale them to the image size
                     box = detection[0:4] * np.array([W, H, W, H])
                     (centerX, centerY, width, height) = box.astype("int")

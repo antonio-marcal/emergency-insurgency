@@ -1,99 +1,107 @@
 import rclpy
-import threading
+from rclpy.node import Node
+from ackermann_msgs.msg import AckermannDrive
+from std_msgs.msg import Bool
+from std_msgs.msg import Float64  
 import ppc
 import YOLO
 import u_turn
 import spawn
-from rclpy.node import Node
-from ackermann_msgs.msg import AckermannDrive  # Message type for vehicle control
-from std_msgs.msg import Bool  # Message type for stop flag
-
+import time
 
 class VehicleControlNode(Node):
-    def __init__(self):
-        super().__init__('vehicle_control_node')  # Initialize the node with a name
+    def __init__(self, executor):
+        super().__init__('vehicle_control_node')
 
         # Publisher to send driving commands to the vehicle
         self.drive_publisher = self.create_publisher(
-            AckermannDrive,  # Message type for vehicle control
-            '/carla/ego_vehicle/ackermann_cmd',  # Topic name for vehicle commands
-            10  # Queue size
+            AckermannDrive,
+            '/carla/ego_vehicle/ackermann_cmd',
+            10
         )
 
         # Subscriber to listen for the action flag
         self.subscription = self.create_subscription(
             Bool,
-            '/carla/ego_vehicle/action_flag',  # Topic name for action flag
+            '/carla/ego_vehicle/action_flag',
             self.action_callback,
-            10  # Queue size
+            10
         )
 
+        self.subscription = self.create_subscription(
+            Float64,  # Message type (speed is a Float64)
+            '/carla/ego_vehicle/speedometer',  # Topic to subscribe to
+            self.speed_callback,  # Callback function to handle the received messages
+            10  # Queue size
+        )
         self.action_flag = False  # Flag to track if the vehicle should stop
-
-        # Timer to send driving commands continuously every 0.1 seconds
         self.timer = self.create_timer(0.1, self.drive)
 
         self.sub_control = None
         self.sub_detection = None
 
-        self.control_thread = None
-        self.detection_thread = None
-
         self.current_fase = 1
+        self.executor=executor
 
-    def phase_1(self):
+        self.nodes_to_destroy=[]
+        self.speed=10000
         
+    def phase_1(self):
         if self.sub_detection is None:
-            # Start the detection node in a new thread
+            # Start the detection node in the executor
             self.sub_detection = YOLO.YoloDetectionNode()
-            self.detection_thread = threading.Thread(target=rclpy.spin, args=(self.sub_detection,))
-            self.detection_thread.start()
+            self.executor.add_node(self.sub_detection)
 
         if self.sub_control is None:
-            # Start the control node in a new thread
+            # Start the control node in the executor
             self.sub_control = ppc.PurePursuitController('waypoints_phase1_expected.csv')
-            self.control_thread = threading.Thread(target=rclpy.spin, args=(self.sub_control,))
-            self.control_thread.start()
+            self.executor.add_node(self.sub_control)
 
     def phase_2(self):
         if self.sub_control is None:
-            # Start the control node in a new thread
+            # Start the control node in the executor
             self.sub_control = u_turn.CustomControlNode()
-            self.control_thread = threading.Thread(target=rclpy.spin, args=(self.sub_control,))
-            self.control_thread.start()
+            self.executor.add_node(self.sub_control)
 
     def drive(self):
         """Choose which control and detection node to use"""
         if not self.action_flag:
-
-            match self.current_fase:
-                case 1:
-                    self.phase_1()
-                case 2:
-                    self.phase_2()
-
+            if self.current_fase == 1:
+                self.phase_1()
+            elif self.current_fase == 2:
+                self.destroy_nodes()
+                self.phase_2()
         else:
-            if self.sub_control is not None:
-                self.sub_control.destroy_node()
-                self.sub_control = None
-                if self.control_thread is not None:
-                    self.control_thread.join()  # Wait for the thread to finish
-                    self.control_thread = None
-
             if self.sub_detection is not None:
-                self.sub_detection.destroy_node()
+                self.executor.remove_node(self.sub_detection)
+                #self.sub_detection.destroy_node()
+                self.nodes_to_destroy.append(self.sub_detection)
                 self.sub_detection = None
-                if self.detection_thread is not None:
-                    self.detection_thread.join()  # Wait for the thread to finish
-                    self.detection_thread = None
+                
+            if self.sub_control is not None:
+                self.executor.remove_node(self.sub_control)
+                #self.sub_control.destroy_node()
+                self.nodes_to_destroy.append(self.sub_control)
+                self.sub_control = None
 
-            self.action_flag = False
 
+
+            
             if self.current_fase == 1:
                 self.brake()
+                if self.speed<1e-4:
+                    time.sleep(2)
+                    self.current_fase += 1
+                    self.action_flag = False
 
-            self.current_fase += 1
+            else:
+                self.current_fase += 1
+                self.action_flag = False
 
+    def speed_callback(self, msg):
+        """Callback function that checks if the vehicle speed is zero (stopped)."""
+        self.speed = msg.data  # Speed is expected to be a Float64 value
+        print(self.speed)
     def action_callback(self, msg):
         """Callback function to handle action flag messages."""
         if msg.data:
@@ -101,41 +109,43 @@ class VehicleControlNode(Node):
 
     def brake(self):
         """Stop the vehicle by setting the speed to zero."""
-        drive_msg = AckermannDrive()  # Create a new drive command message
-        drive_msg.speed = 0.0  # Set the vehicle speed to zero
-        self.drive_publisher.publish(drive_msg)  # Publish the drive command
-        self.get_logger().info('Braking...')  # Log that the vehicle is braking
+        drive_msg = AckermannDrive()
+        drive_msg.speed = 0.0
+        self.drive_publisher.publish(drive_msg)
+        self.get_logger().info('Braking...')
+
+    def destroy_nodes(self):
+        for node in self.nodes_to_destroy:
+            node.destroy_node()       
+        self.nodes_to_destroy=[]    
 
     def __del__(self):
-        # Properly destroy nodes and join threads when the object is deleted
-        if self.sub_control is not None:
-            self.sub_control.destroy_node()
-            self.sub_control = None
-            if self.control_thread is not None:
-                self.control_thread.join()
-                self.control_thread = None
-
+        # Properly destroy nodes when the object is deleted
         if self.sub_detection is not None:
             self.sub_detection.destroy_node()
-            self.sub_detection = None
-            if self.detection_thread is not None:
-                self.detection_thread.join()
-                self.detection_thread = None
 
+        if self.sub_control is not None:
+            self.sub_control.destroy_node()
 
 def main(args=None):
     spawn.main()
 
     rclpy.init(args=args)  # Initialize the ROS2 Python library
-    node = VehicleControlNode()  # Create an instance of the VehicleControlNode
+    executor = rclpy.executors.MultiThreadedExecutor()
+    node = VehicleControlNode(executor)  # Create an instance of the VehicleControlNode
+
+    # Create the MultiThreadedExecutor to handle multiple nodes concurrently
+    
+    executor.add_node(node)
 
     try:
-        rclpy.spin(node)
+        executor.spin()  # Spin the executor to handle multiple nodes concurrently
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-
-    rclpy.shutdown()  # Shutdown the ROS2 Python library
+    finally:
+        # Ensure the node is properly destroyed and shutdown
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

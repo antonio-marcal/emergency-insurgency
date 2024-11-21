@@ -5,6 +5,7 @@ from rclpy.node import Node
 from time import time
 from ackermann_msgs.msg import AckermannDrive
 from math import pi
+from std_msgs.msg import Bool
 
 class CustomControlNode(Node):
     def __init__(self):
@@ -18,6 +19,7 @@ class CustomControlNode(Node):
             Bool, # Message type
             '/carla/ego_vehicle/action_flag', # Topic name
             10) # Queue size
+        
 
     def timer_callback(self):
         current_time = time() - self.start_time
@@ -25,7 +27,7 @@ class CustomControlNode(Node):
         if current_time <= 2:
             # First 10 seconds: 30 kph (approx 8.33 m/s), 5 degrees steering angle
             msg.steering_angle = 0 * (pi / 180) # Convert degrees to radians
-            msg.speed = 30 / 3.6 # Convert kph to mps
+            msg.speed = -30 / 3.6 # Convert kph to mps
         elif current_time <= 10:
             # Next 10 seconds: 30 kph (approx 8.33 m/s), 0 degrees steering angle
             msg.steering_angle = 25.0 * (pi / 180)
