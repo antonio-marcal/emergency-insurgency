@@ -193,9 +193,9 @@ def main():
    spawn_specific_vehicle(world, blueprint_library, specific_vehicle_type3, spawn_location4, spawn_rotation4)
 
 
-   specific_vehicle_type4 = 'vehicle.citroen.c3'  # Example vehicle type
+   specific_vehicle_type4 = 'vehicle.citroen.c3'  # Overtaken Car
 
-   spawn_location5 = (-6.3, 69.9, 2.0)  # Example location (x, y, z)
+   spawn_location5 = (23.0, 69.9, 2.0)  # Example location (x, y, z)
 
    spawn_rotation5 = (0, 0, 0)  # Example rotation (pitch, yaw, roll)
 
@@ -211,7 +211,7 @@ def main():
    spawn_specific_vehicle(world, blueprint_library, specific_vehicle_type5, spawn_location6, spawn_rotation6)
 
 
-   specific_walker_type2 = 'walker.pedestrian.0036'  # Example vehicle type
+   specific_walker_type2 = 'walker.pedestrian.0036'  # Victim
 
    spawn_location7 = (108.2, 26.3, 2.0)  # Example location (x, y, z)
 

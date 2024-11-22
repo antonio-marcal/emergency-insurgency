@@ -7,7 +7,7 @@ import ppc
 import YOLO
 import u_turn
 import spawn
-import time
+import destroy_actor
 
 class VehicleControlNode(Node):
     def __init__(self, executor):
@@ -70,6 +70,10 @@ class VehicleControlNode(Node):
             self.sub_control = u_turn.CustomControlNode()
             self.executor.add_node(self.sub_control)
 
+    def phase_4(self):
+        destroy_actor.destroy_actor('*pedestrian.0036*')
+        self.action_flag = True
+
     def drive(self):
         """Choose which control and detection node to use"""
         if not self.action_flag:
@@ -78,6 +82,8 @@ class VehicleControlNode(Node):
             elif self.current_fase == 2:
                 self.destroy_nodes()
                 self.phase_2()
+            elif self.current_fase == 3:
+                self.phase_4()
         else:
             if self.sub_detection is not None:
                 self.executor.remove_node(self.sub_detection)

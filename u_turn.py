@@ -15,7 +15,7 @@ class CustomControlNode(Node):
         self.start_time = time()
 
         # Publisher to send a stop flag when u-turn is over
-        self.stop_publisher = self.create_publisher(
+        self.action_publisher = self.create_publisher(
             Bool, # Message type
             '/carla/ego_vehicle/action_flag', # Topic name
             10) # Queue size
@@ -39,12 +39,12 @@ class CustomControlNode(Node):
             msg.steering_angle = 45.0 * (pi / 180)
             msg.speed = 30 / 3.6
  
-        elif current_time <= 28: 
+        elif current_time <= 27.5: 
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180)
             msg.speed = 30 / 3.6
 
-        elif current_time <= 32.0:
+        elif current_time <= 31.5:
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 33 * (pi / 180)
             msg.speed = 30 / 3.6
@@ -53,6 +53,11 @@ class CustomControlNode(Node):
             # Stop after XX seconds
             msg.steering_angle = 0.0
             msg.speed = 0.0
+
+            action_msg = Bool()
+            action_msg.data = True # Set action flag to True
+            self.action_publisher.publish(action_msg) # Publish the action flag
+            self.get_logger().info('U-Turn is done. Notifying the master.') # Log the detection
 
         self.publisher.publish(msg)
 
