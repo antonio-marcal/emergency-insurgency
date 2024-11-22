@@ -24,26 +24,35 @@ class CustomControlNode(Node):
     def timer_callback(self):
         current_time = time() - self.start_time
         msg = AckermannDrive()
-        if current_time <= 2:
-            # First 10 seconds: 30 kph (approx 8.33 m/s), 5 degrees steering angle
+        if current_time <= 10:
+            # First XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180) # Convert degrees to radians
             msg.speed = -30 / 3.6 # Convert kph to mps
-        elif current_time <= 10:
-            # Next 10 seconds: 30 kph (approx 8.33 m/s), 0 degrees steering angle
-            msg.steering_angle = 25.0 * (pi / 180)
+
+        elif current_time <= 11:
+            # Next XX seconds: XX kph XX degrees steering angle
+            msg.steering_angle = 0.0 * (pi / 180)
+            msg.speed = 0 / 3.6
+
+        elif current_time <= 22.8:
+            # Next XX seconds: XX kph XX degrees steering angle
+            msg.steering_angle = 45.0 * (pi / 180)
             msg.speed = 30 / 3.6
-        elif current_time <= 17:
-            # Next 10 seconds: 30 kph (approx 8.33 m/s), 0 degrees steering angle
+ 
+        elif current_time <= 28: 
+            # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180)
             msg.speed = 30 / 3.6
-        elif current_time <= 25:
-            # Next 10 seconds: 30 kph (approx 8.33 m/s), 0 degrees steering angle
-            msg.steering_angle = 25 * (pi / 180)
+
+        elif current_time <= 32.0:
+            # Next XX seconds: XX kph XX degrees steering angle
+            msg.steering_angle = 33 * (pi / 180)
             msg.speed = 30 / 3.6
+
         else:
-            # Stop after 20 seconds
-            msg.steering_angle = 0.0  # Convert degrees to radians
-            msg.speed = 0.0 # Convert kph to mps
+            # Stop after XX seconds
+            msg.steering_angle = 0.0
+            msg.speed = 0.0
 
         self.publisher.publish(msg)
 

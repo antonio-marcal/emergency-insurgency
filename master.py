@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
 from std_msgs.msg import Bool
-from std_msgs.msg import Float64  
+from std_msgs.msg import Float32
 import ppc
 import YOLO
 import u_turn
@@ -28,12 +28,19 @@ class VehicleControlNode(Node):
             10
         )
 
-        self.subscription = self.create_subscription(
-            Float64,  # Message type (speed is a Float64)
-            '/carla/ego_vehicle/speedometer',  # Topic to subscribe to
-            self.speed_callback,  # Callback function to handle the received messages
-            10  # Queue size
-        )
+        # self.subscription = self.create_subscription(
+        #     Float64,  # Message type (speed is a Float64)
+        #     '/carla/ego_vehicle/speedometer',  # Topic to subscribe to
+        #     self.speed_callback,  # Callback function to handle the received messages
+        #     10  # Queue size
+        # )
+
+        self.create_subscription(
+            Float32,
+            '/carla/ego_vehicle/speedometer',
+            self.speed_callback,
+            10)
+
         self.action_flag = False  # Flag to track if the vehicle should stop
         self.timer = self.create_timer(0.1, self.drive)
 
@@ -90,7 +97,6 @@ class VehicleControlNode(Node):
             if self.current_fase == 1:
                 self.brake()
                 if self.speed<1e-4:
-                    time.sleep(2)
                     self.current_fase += 1
                     self.action_flag = False
 
@@ -101,7 +107,7 @@ class VehicleControlNode(Node):
     def speed_callback(self, msg):
         """Callback function that checks if the vehicle speed is zero (stopped)."""
         self.speed = msg.data  # Speed is expected to be a Float64 value
-        print(self.speed)
+
     def action_callback(self, msg):
         """Callback function to handle action flag messages."""
         if msg.data:

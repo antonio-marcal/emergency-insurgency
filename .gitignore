@@ -162,4 +162,4 @@ output.csv
 *.weights
 *.cfg
 *.names
-save_images
+*.jpg
