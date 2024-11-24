@@ -73,38 +73,42 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if time.time() - self.timeout > 1.3:
+            if time.time() - self.timeout > 1.7:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
 
-                self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
+                self.get_logger().info("Straightning.")
                 self.straigthen_lane(4.0,-1.0)
                 self.timeout = time.time()
             
         elif self.stage == 1:
-            if time.time() - self.timeout > 2:
+            if time.time() - self.timeout > 1.7:
+                self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
                 self.stage = 2
                 self.timeout = time.time()
-                self.maintain_lane(lane_center_offset, 7.0)
+                
 
         elif self.stage == 2:
-            if time.time() - self.timeout > 5:
+            
+            if time.time() - self.timeout > 15:
                 self.stage = 3
                 # Continue returning to the lane center
                 self.get_logger().info("Returning to right lane.")
                 self.perform_lane_change(left_turn=False)
                 self.timeout = time.time()
+            else:
+                self.maintain_lane(lane_center_offset, 9.0)
 
         elif self.stage == 3:
-            if time.time() - self.timeout > 1.3:
+            if time.time() - self.timeout > 1.7:
                 self.stage = 4
                 self.timeout = time.time()
                 self.get_logger().info("Vehicle cleared. Maitaining Right lane.")
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if time.time() - self.timeout > 1:
+            if time.time() - self.timeout > 1.75:
                 self.stage = -1
 
         else:
@@ -170,6 +174,7 @@ class SemanticCameraNode(Node):
         twist = Twist()
         twist.linear.x = lin_vel  # Normal cruising speed
         twist.angular.z = -lane_center_offset  # Adjust steering to stay centered
+        print(lane_center_offset)
         self.velocity_publisher.publish(twist)
 
     def straigthen_lane(self, lin_vel, r_l):
