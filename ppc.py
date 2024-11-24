@@ -12,9 +12,9 @@ import numpy as np
 import csv
 import time
 
-MAX_STEERING_ANGLE = np.radians(60) # Maximum steering angle in radians
+MAX_STEERING_ANGLE = np.radians(30) # Maximum steering angle in radians
 WHEELBASE = 4.5 # Wheelbase of the Ford Ambulance in meters
-LOOKAHEAD_DISTANCE = 30 # Increased look-ahead distance in meters
+LOOKAHEAD_DISTANCE = 40 # Increased look-ahead distance in meters
 VEHICLE_SPEED = 8.0 # Increased speed of the vehicle in meters per second
 
 

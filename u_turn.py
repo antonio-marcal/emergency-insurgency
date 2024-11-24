@@ -34,17 +34,17 @@ class CustomControlNode(Node):
             msg.steering_angle = 0.0 * (pi / 180)
             msg.speed = 0 / 3.6
 
-        elif current_time <= 22.8:
+        elif current_time <= 22.9:
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 45.0 * (pi / 180)
             msg.speed = 30 / 3.6
  
-        elif current_time <= 27.5: 
+        elif current_time <= 27.4: 
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180)
             msg.speed = 30 / 3.6
 
-        elif current_time <= 31.5:
+        elif current_time <= 31.4:
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 33 * (pi / 180)
             msg.speed = 30 / 3.6
@@ -52,7 +52,7 @@ class CustomControlNode(Node):
         else:
             # Stop after XX seconds
             msg.steering_angle = 0.0
-            msg.speed = 0.0
+            # msg.speed = 0.0
 
             action_msg = Bool()
             action_msg.data = True # Set action flag to True

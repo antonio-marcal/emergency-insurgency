@@ -6,11 +6,14 @@ from std_msgs.msg import Float32
 import ppc
 import YOLO
 import u_turn
+import semantic_camera
+import overtake
 import spawn
 import destroy_actor
+import carla
 
 class VehicleControlNode(Node):
-    def __init__(self, executor):
+    def __init__(self, executor, world):
         super().__init__('vehicle_control_node')
 
         # Publisher to send driving commands to the vehicle
@@ -52,6 +55,9 @@ class VehicleControlNode(Node):
 
         self.nodes_to_destroy=[]
         self.speed=10000
+
+        self.world = world
+
         
     def phase_1(self):
         if self.sub_detection is None:
@@ -70,8 +76,22 @@ class VehicleControlNode(Node):
             self.sub_control = u_turn.CustomControlNode()
             self.executor.add_node(self.sub_control)
 
+    def phase_3(self):
+
+        if self.sub_detection is None:
+            # Start the detection node in the executor
+            self.sub_detection = semantic_camera.SemanticCameraNode()
+            self.executor.add_node(self.sub_detection)
+
+        if self.sub_control is None:
+            # Start the control node in the executor
+            self.sub_control = overtake.CombinedControlNode()
+            self.executor.add_node(self.sub_control)
+
+        destroy_actor.move_slow_vehicle("*citroen.c3*", self.world)
+
     def phase_4(self):
-        destroy_actor.destroy_actor('*pedestrian.0036*')
+        destroy_actor.destroy_actor('*pedestrian.0036*', self.world)
         self.action_flag = True
 
     def drive(self):
@@ -83,7 +103,8 @@ class VehicleControlNode(Node):
                 self.destroy_nodes()
                 self.phase_2()
             elif self.current_fase == 3:
-                self.phase_4()
+                self.destroy_nodes()
+                self.phase_3()
         else:
             if self.sub_detection is not None:
                 self.executor.remove_node(self.sub_detection)
@@ -96,8 +117,6 @@ class VehicleControlNode(Node):
                 #self.sub_control.destroy_node()
                 self.nodes_to_destroy.append(self.sub_control)
                 self.sub_control = None
-
-
 
             
             if self.current_fase == 1:
@@ -140,11 +159,17 @@ class VehicleControlNode(Node):
             self.sub_control.destroy_node()
 
 def main(args=None):
-    spawn.main()
+    client = carla.Client('localhost', 2000)
+    world = client.get_world()
+
+    traffic_manager = client.get_trafficmanager()
+    traffic_manager.set_hybrid_physics_mode(False)
+
+    spawn.main(world)
 
     rclpy.init(args=args)  # Initialize the ROS2 Python library
     executor = rclpy.executors.MultiThreadedExecutor()
-    node = VehicleControlNode(executor)  # Create an instance of the VehicleControlNode
+    node = VehicleControlNode(executor, world)  # Create an instance of the VehicleControlNode
 
     # Create the MultiThreadedExecutor to handle multiple nodes concurrently
     

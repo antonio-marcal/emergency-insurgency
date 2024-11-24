@@ -57,15 +57,14 @@ def spawn_specific_vehicle(world, blueprint_library, vehicle_type, location, rot
        return None
 
 
-def main():
+def main(world = None):
 
    # Connect to the Carla Simulator
 
-   client = carla.Client('localhost', 2000)  # Default CARLA port
-
-   client.set_timeout(10.0)
-
-   world = client.get_world()
+   if world is None:
+    client = carla.Client('localhost', 2000)  # Default CARLA port
+    client.set_timeout(10.0)
+    world = client.get_world()
 
 
     # Set the world to nighttime
@@ -195,7 +194,7 @@ def main():
 
    specific_vehicle_type4 = 'vehicle.citroen.c3'  # Overtaken Car
 
-   spawn_location5 = (16.0, 69.9, 2.0)  # Example location (x, y, z)
+   spawn_location5 = (-15, 69.9, 2.0)  # Example location (x, y, z)
 
    spawn_rotation5 = (0, 0, 0)  # Example rotation (pitch, yaw, roll)
 

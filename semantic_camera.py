@@ -73,7 +73,7 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if time.time() - self.timeout > 1.7:
+            if time.time() - self.timeout > 1.5:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
@@ -83,7 +83,7 @@ class SemanticCameraNode(Node):
                 self.timeout = time.time()
             
         elif self.stage == 1:
-            if time.time() - self.timeout > 1.7:
+            if time.time() - self.timeout > 1.9:
                 self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
                 self.stage = 2
                 self.timeout = time.time()
@@ -91,7 +91,7 @@ class SemanticCameraNode(Node):
 
         elif self.stage == 2:
             
-            if time.time() - self.timeout > 15:
+            if time.time() - self.timeout > 11:
                 self.stage = 3
                 # Continue returning to the lane center
                 self.get_logger().info("Returning to right lane.")
@@ -101,14 +101,14 @@ class SemanticCameraNode(Node):
                 self.maintain_lane(lane_center_offset, 9.0)
 
         elif self.stage == 3:
-            if time.time() - self.timeout > 1.7:
+            if time.time() - self.timeout > 1.5:
                 self.stage = 4
                 self.timeout = time.time()
                 self.get_logger().info("Vehicle cleared. Maitaining Right lane.")
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if time.time() - self.timeout > 1.75:
+            if time.time() - self.timeout > 1.9:
                 self.stage = -1
 
         else:
