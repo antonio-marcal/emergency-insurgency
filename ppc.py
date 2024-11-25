@@ -12,15 +12,17 @@ import numpy as np
 import csv
 import time
 
-MAX_STEERING_ANGLE = np.radians(30) # Maximum steering angle in radians
-WHEELBASE = 4.5 # Wheelbase of the Ford Ambulance in meters
-LOOKAHEAD_DISTANCE = 40 # Increased look-ahead distance in meters
-VEHICLE_SPEED = 8.0 # Increased speed of the vehicle in meters per second
+
 
 
 class PurePursuitController(Node):
-    def __init__(self, filename):
+    def __init__(self, filename, angle, dist, speed):
         super().__init__('pure_pursuit_controller')
+
+        self.max_steering_angle = np.radians(angle) # Maximum steering angle in radians
+        self.wheelbase = 4.5 # Wheelbase of the Ford Ambulance in meters
+        self.lookahead_distance = dist # Increased look-ahead distance in meters
+        self.target_speed = speed # Increased speed of the vehicle in meters per second
 
         # Load waypoints from the specified CSV file
         waypoints = pd.read_csv(filename)
@@ -63,7 +65,7 @@ class PurePursuitController(Node):
             return
         
         # Calculate the steering angle and publish the control command
-        steering_angle, waypoint_index = self.calculate_steering_angle(LOOKAHEAD_DISTANCE)
+        steering_angle, waypoint_index = self.calculate_steering_angle(self.lookahead_distance)
         self.publish_control_command(steering_angle)
 
         # Record the current state for logging purposes
@@ -78,9 +80,9 @@ class PurePursuitController(Node):
         
         # Calculate the heading error and steering angle using the pure pursuit formula
         heading_error = math.atan2(target_y - self.vehicle_y, target_x - self.vehicle_x) -self.vehicle_yaw
-        steering_angle = math.atan2(2.0 * WHEELBASE * math.sin(heading_error) /
+        steering_angle = math.atan2(2.0 * self.wheelbase * math.sin(heading_error) /
         lookahead_distance, 1.0)
-        steering_angle = np.clip(steering_angle, -MAX_STEERING_ANGLE, MAX_STEERING_ANGLE)
+        steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
         
         return steering_angle, nearest_waypoint_index
     
@@ -93,7 +95,7 @@ class PurePursuitController(Node):
         # Create and publish the control command
         control_command = AckermannDrive()
         control_command.steering_angle = steering_angle
-        control_command.speed = VEHICLE_SPEED
+        control_command.speed = self.target_speed
         self.control_publisher.publish(control_command)
 
     def __del__(self):

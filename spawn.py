@@ -194,7 +194,7 @@ def main(world = None):
 
    specific_vehicle_type4 = 'vehicle.citroen.c3'  # Overtaken Car
 
-   spawn_location5 = (-15, 69.9, 2.0)  # Example location (x, y, z)
+   spawn_location5 = (16, 69.9, 2.0)  # Example location (x, y, z)
 
    spawn_rotation5 = (0, 0, 0)  # Example rotation (pitch, yaw, roll)
 

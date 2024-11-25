@@ -31,13 +31,6 @@ class VehicleControlNode(Node):
             10
         )
 
-        # self.subscription = self.create_subscription(
-        #     Float64,  # Message type (speed is a Float64)
-        #     '/carla/ego_vehicle/speedometer',  # Topic to subscribe to
-        #     self.speed_callback,  # Callback function to handle the received messages
-        #     10  # Queue size
-        # )
-
         self.create_subscription(
             Float32,
             '/carla/ego_vehicle/speedometer',
@@ -67,13 +60,18 @@ class VehicleControlNode(Node):
 
         if self.sub_control is None:
             # Start the control node in the executor
-            self.sub_control = ppc.PurePursuitController('waypoints_phase1_expected.csv')
+            self.sub_control = ppc.PurePursuitController('waypoints_phase1_expected.csv', 30, 40, 8.0)
             self.executor.add_node(self.sub_control)
 
     def phase_2(self):
+        if self.sub_detection is None:
+            # Start the detection node in the executor
+            self.sub_detection = semantic_camera.SemanticCameraNode(True)
+            self.executor.add_node(self.sub_detection)
+            
         if self.sub_control is None:
             # Start the control node in the executor
-            self.sub_control = u_turn.CustomControlNode()
+            self.sub_control = u_turn.CustomControlNode(self.world)
             self.executor.add_node(self.sub_control)
 
     def phase_3(self):
@@ -85,14 +83,24 @@ class VehicleControlNode(Node):
 
         if self.sub_control is None:
             # Start the control node in the executor
-            self.sub_control = overtake.CombinedControlNode()
+            self.sub_control = overtake.CombinedControlNode(self.world)
             self.executor.add_node(self.sub_control)
 
-        destroy_actor.move_slow_vehicle("*citroen.c3*", self.world)
+        #destroy_actor.move_slow_vehicle("*citroen.c3*", self.world)
 
     def phase_4(self):
+        if self.sub_detection is None:
+            # Start the detection node in the executor
+            self.sub_detection = YOLO.YoloDetectionNode()
+            self.executor.add_node(self.sub_detection)
+
+        if self.sub_control is None:
+            # Start the control node in the executor
+            self.sub_control = ppc.PurePursuitController('waypoints_phase4.csv', 60, 20, 5.0)
+            self.executor.add_node(self.sub_control)
+
+    def phase_5(self):
         destroy_actor.destroy_actor('*pedestrian.0036*', self.world)
-        self.action_flag = True
 
     def drive(self):
         """Choose which control and detection node to use"""
@@ -105,6 +113,13 @@ class VehicleControlNode(Node):
             elif self.current_fase == 3:
                 self.destroy_nodes()
                 self.phase_3()
+            elif self.current_fase == 4:
+                self.destroy_nodes()
+                self.phase_4()
+            elif self.current_fase == 5:
+                self.destroy_nodes()
+                self.phase_5()
+
         else:
             if self.sub_detection is not None:
                 self.executor.remove_node(self.sub_detection)
@@ -119,7 +134,7 @@ class VehicleControlNode(Node):
                 self.sub_control = None
 
             
-            if self.current_fase == 1:
+            if self.current_fase in (1, 4):
                 self.brake()
                 if self.speed<1e-4:
                     self.current_fase += 1

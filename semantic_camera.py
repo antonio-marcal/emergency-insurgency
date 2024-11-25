@@ -12,7 +12,7 @@ import time
 
 
 class SemanticCameraNode(Node):
-    def __init__(self):
+    def __init__(self, dumb_mode = False):
         super().__init__('semantic_camera_node')
 
         # Subscriptions and publishers
@@ -35,6 +35,8 @@ class SemanticCameraNode(Node):
         self.vehicle_in_front = False
         self.stage = -1
         self.timeout = 0
+
+        self.dumb_mode = dumb_mode
 
     def listener_callback(self, msg):
         # Convert image to OpenCV format
@@ -65,7 +67,7 @@ class SemanticCameraNode(Node):
         self.vehicle_in_front_publisher.publish(vehicle_in_front_msg)
 
         # State machine for lane change and return
-        if vehicle_in_front and not self.stage >= 0:
+        if vehicle_in_front and not self.stage >= 0 and not self.dumb_mode:
             self.vehicle_in_front = True
             self.stage = 0
             self.get_logger().info("Vehicle detected! Turning left.")
@@ -73,7 +75,7 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if time.time() - self.timeout > 1.5:
+            if time.time() - self.timeout > 1.4:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
@@ -83,7 +85,7 @@ class SemanticCameraNode(Node):
                 self.timeout = time.time()
             
         elif self.stage == 1:
-            if time.time() - self.timeout > 1.9:
+            if time.time() - self.timeout > 1.8:
                 self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
                 self.stage = 2
                 self.timeout = time.time()
@@ -101,20 +103,20 @@ class SemanticCameraNode(Node):
                 self.maintain_lane(lane_center_offset, 9.0)
 
         elif self.stage == 3:
-            if time.time() - self.timeout > 1.5:
+            if time.time() - self.timeout > 1.4:
                 self.stage = 4
                 self.timeout = time.time()
                 self.get_logger().info("Vehicle cleared. Maitaining Right lane.")
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if time.time() - self.timeout > 1.9:
+            if time.time() - self.timeout > 1.8:
                 self.stage = -1
 
         else:
             # Maintain the lane
-            self.get_logger().info("Clear road ahead. Maintaining lane.")
-            self.maintain_lane(lane_center_offset, 9.0)
+            # self.get_logger().info("Clear road ahead. Maintaining lane.")
+            self.maintain_lane(lane_center_offset, 10.0)
 
     def compute_centerline(self, lane_line_mask):
         """
