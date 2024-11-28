@@ -102,7 +102,7 @@ class SemanticCameraNode(Node):
                 self.timeout = time.time()
             
         elif self.stage == 1:
-            if rotation.yaw>=-16.4:
+            if rotation.yaw>=-16.55:
                 self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
                 self.stage = 2
                 self.timeout = time.time()
@@ -127,7 +127,7 @@ class SemanticCameraNode(Node):
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if rotation.yaw<=16.4:
+            if rotation.yaw<=17.3:
                 self.stage = -1
 
         else:

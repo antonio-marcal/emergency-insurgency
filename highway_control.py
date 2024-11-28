@@ -28,8 +28,8 @@ class CombinedControlNode(Node):
         drive_msg = AckermannDrive()
         
         # Adjust steering angle based on lane offset and the nature of the turn
-        if abs(self.lane_offset) < 0.05:  # Small offset, indicating a straight or nearly straight lane
-            steering_angle = -self.lane_offset * 0.8  # Small correction
+        if abs(self.lane_offset) < 0.06:  # Small offset, indicating a straight or nearly straight lane
+            steering_angle = -self.lane_offset  # Small correction
             max_steering_angle = 0.5  # Smaller max steering angle for straight roads
         elif abs(self.lane_offset)<0.1:
             steering_angle = -self.lane_offset * 2  # Larger scaling for sharper turns
