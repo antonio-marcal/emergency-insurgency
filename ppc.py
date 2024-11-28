@@ -5,6 +5,7 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32
 from ackermann_msgs.msg import AckermannDrive
+from std_msgs.msg import Bool
 from transforms3d.euler import quat2euler
 import math
 import pandas as pd
@@ -45,8 +46,14 @@ class PurePursuitController(Node):
         self.control_publisher = self.create_publisher(AckermannDrive,
         '/carla/ego_vehicle/ackermann_cmd', 10)
 
-        # Timer to run the control loop at 20 Hz
-        self.control_timer = self.create_timer(0.05, self.run_control_loop)
+        # Timer to run the control loop at 100 Hz
+        self.control_timer = self.create_timer(0.01, self.run_control_loop)
+
+        # Publisher to send a flag when waypoints are done
+        self.stop_publisher = self.create_publisher(
+            Bool, # Message type
+            '/carla/ego_vehicle/waypoints_done', # Topic name
+            10) # Queue size
 
     def odometry_callback(self, msg):
         # Update vehicle position and orientation from odometry data
@@ -68,6 +75,12 @@ class PurePursuitController(Node):
         steering_angle, waypoint_index = self.calculate_steering_angle(self.lookahead_distance)
         self.publish_control_command(steering_angle)
 
+        if  (self.waypoint_x.size - waypoint_index) <= .11 * self.waypoint_x.size:
+            stop_msg = Bool()
+            stop_msg.data = True # Set stop flag to True
+            self.get_logger().info('Waypoints are over!!! Notifying the master.') # Log the detection
+            self.stop_publisher.publish(stop_msg) # Publish the stop flag  
+
         # Record the current state for logging purposes
         current_time = self.get_clock().now().seconds_nanoseconds()[0] + self.get_clock().now().seconds_nanoseconds()[1] * 1e-9
         self.rows.append([current_time, self.vehicle_x, self.vehicle_y, self.vehicle_speed])
@@ -75,6 +88,7 @@ class PurePursuitController(Node):
     def calculate_steering_angle(self, lookahead_distance):
         # Find the nearest waypoint to the current vehicle position
         nearest_waypoint_index = self.find_nearest_waypoint(self.vehicle_x, self.vehicle_y)
+
         target_x = self.waypoint_x[nearest_waypoint_index]
         target_y = self.waypoint_y[nearest_waypoint_index]
         

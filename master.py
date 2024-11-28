@@ -10,7 +10,9 @@ import semantic_camera
 import overtake
 import spawn
 import destroy_actor
+import highway_detector
 import carla
+import highway_control
 
 class VehicleControlNode(Node):
     def __init__(self, executor, world):
@@ -28,6 +30,14 @@ class VehicleControlNode(Node):
             Bool,
             '/carla/ego_vehicle/action_flag',
             self.action_callback,
+            10
+        )
+
+         # Subscriber to listen for the waypoints_done flag
+        self.subscription = self.create_subscription(
+            Bool,
+            '/carla/ego_vehicle/waypoints_done',
+            self.waypoints_callback,
             10
         )
 
@@ -66,7 +76,7 @@ class VehicleControlNode(Node):
     def phase_2(self):
         if self.sub_detection is None:
             # Start the detection node in the executor
-            self.sub_detection = semantic_camera.SemanticCameraNode(True)
+            self.sub_detection = semantic_camera.SemanticCameraNode(dumb_mode=True)
             self.executor.add_node(self.sub_detection)
             
         if self.sub_control is None:
@@ -78,7 +88,7 @@ class VehicleControlNode(Node):
 
         if self.sub_detection is None:
             # Start the detection node in the executor
-            self.sub_detection = semantic_camera.SemanticCameraNode()
+            self.sub_detection = semantic_camera.SemanticCameraNode(world=self.world)
             self.executor.add_node(self.sub_detection)
 
         if self.sub_control is None:
@@ -89,18 +99,40 @@ class VehicleControlNode(Node):
         #destroy_actor.move_slow_vehicle("*citroen.c3*", self.world)
 
     def phase_4(self):
-        if self.sub_detection is None:
-            # Start the detection node in the executor
-            self.sub_detection = YOLO.YoloDetectionNode()
-            self.executor.add_node(self.sub_detection)
+        # if self.sub_detection is None:
+        #     # Start the detection node in the executor
+        #     self.sub_detection = YOLO.YoloDetectionNode()
+        #     self.executor.add_node(self.sub_detection)
 
         if self.sub_control is None:
             # Start the control node in the executor
-            self.sub_control = ppc.PurePursuitController('waypoints_phase4.csv', 60, 20, 5.0)
+            self.sub_control = ppc.PurePursuitController('waypoints_phase4.csv', 70, 15, 4.0)
             self.executor.add_node(self.sub_control)
 
     def phase_5(self):
         destroy_actor.destroy_actor('*pedestrian.0036*', self.world)
+
+        if self.sub_detection is None:
+            # Start the detection node in the executor
+            self.sub_detection = highway_detector.HighwayDetectionNode(self.world)
+            self.executor.add_node(self.sub_detection)
+
+        if self.sub_control is None:
+            # Start the control node in the executor
+            self.sub_control = ppc.PurePursuitController('waypoints_phase45.csv', 70, 15, 4.0)
+            self.executor.add_node(self.sub_control)
+
+    def phase_6(self):
+        if self.sub_detection is None:
+            # Start the detection node in the executor
+            self.sub_detection = semantic_camera.SemanticCameraNode(dumb_mode=True)
+            self.executor.add_node(self.sub_detection)
+
+        if self.sub_control is None:
+            # Start the control node in the executor
+            self.sub_control = highway_control.CombinedControlNode()
+            self.executor.add_node(self.sub_control)
+        
 
     def drive(self):
         """Choose which control and detection node to use"""
@@ -119,6 +151,9 @@ class VehicleControlNode(Node):
             elif self.current_fase == 5:
                 self.destroy_nodes()
                 self.phase_5()
+            elif self.current_fase == 6:
+                self.destroy_nodes()
+                self.phase_6()
 
         else:
             if self.sub_detection is not None:
@@ -152,6 +187,11 @@ class VehicleControlNode(Node):
         """Callback function to handle action flag messages."""
         if msg.data:
             self.action_flag = True  # Set stop flag to True if stop signal is received
+
+    def waypoints_callback(self, msg):
+        """Callback function to handle waypoints flag messages."""
+        if msg.data and self.current_fase == 4:
+            self.action_flag = True
 
     def brake(self):
         """Stop the vehicle by setting the speed to zero."""

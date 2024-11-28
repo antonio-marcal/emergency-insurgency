@@ -12,7 +12,7 @@ import time
 
 
 class SemanticCameraNode(Node):
-    def __init__(self, dumb_mode = False):
+    def __init__(self, dumb_mode = False, world = None):
         super().__init__('semantic_camera_node')
 
         # Subscriptions and publishers
@@ -37,6 +37,17 @@ class SemanticCameraNode(Node):
         self.timeout = 0
 
         self.dumb_mode = dumb_mode
+
+        self.ego_vehicle = None
+
+        if world is not None:
+            for actor in world.get_actors().filter('vehicle.*'):
+                if 'ego_vehicle' in actor.attributes['role_name']:  # Check if the actor is the ego vehicle
+                    self.ego_vehicle = actor
+                    break  # Stop once we find the ego vehicle
+
+            if self.ego_vehicle is None:
+                print("Ego vehicle not found!")
 
     def listener_callback(self, msg):
         # Convert image to OpenCV format
@@ -66,6 +77,12 @@ class SemanticCameraNode(Node):
         vehicle_in_front_msg.data = bool(vehicle_in_front)
         self.vehicle_in_front_publisher.publish(vehicle_in_front_msg)
 
+        if self.ego_vehicle is not None:
+            ego_transform = self.ego_vehicle.get_transform()
+            # Access the rotation (pitch, yaw, roll)
+            rotation = ego_transform.rotation
+
+
         # State machine for lane change and return
         if vehicle_in_front and not self.stage >= 0 and not self.dumb_mode:
             self.vehicle_in_front = True
@@ -75,7 +92,7 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if time.time() - self.timeout > 1.4:
+            if rotation.yaw<=-20:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
@@ -85,7 +102,7 @@ class SemanticCameraNode(Node):
                 self.timeout = time.time()
             
         elif self.stage == 1:
-            if time.time() - self.timeout > 1.8:
+            if rotation.yaw>=-16.4:
                 self.get_logger().info("Vehicle cleared. Maitaining Left lane.")
                 self.stage = 2
                 self.timeout = time.time()
@@ -103,14 +120,14 @@ class SemanticCameraNode(Node):
                 self.maintain_lane(lane_center_offset, 9.0)
 
         elif self.stage == 3:
-            if time.time() - self.timeout > 1.4:
+            if rotation.yaw>=20:
                 self.stage = 4
                 self.timeout = time.time()
                 self.get_logger().info("Vehicle cleared. Maitaining Right lane.")
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if time.time() - self.timeout > 1.8:
+            if rotation.yaw<=16.4:
                 self.stage = -1
 
         else:
@@ -176,7 +193,6 @@ class SemanticCameraNode(Node):
         twist = Twist()
         twist.linear.x = lin_vel  # Normal cruising speed
         twist.angular.z = -lane_center_offset  # Adjust steering to stay centered
-        print(lane_center_offset)
         self.velocity_publisher.publish(twist)
 
     def straigthen_lane(self, lin_vel, r_l):

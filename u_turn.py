@@ -7,6 +7,7 @@ from ackermann_msgs.msg import AckermannDrive
 from math import pi
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist
+import carla
 
 class CustomControlNode(Node):
     def __init__(self, world):
@@ -21,6 +22,8 @@ class CustomControlNode(Node):
         self.twist.angular.z = 0.0
 
         self.turn_start = -1
+        self.u_turned = False
+
 
         # Publisher to send a stop flag when u-turn is over
         self.action_publisher = self.create_publisher(
@@ -43,6 +46,13 @@ class CustomControlNode(Node):
     def timer_callback(self):
         current_time = time() - self.start_time
         msg = AckermannDrive()
+        ego_transform = self.ego_vehicle.get_transform()
+
+        # Access the location (x, y, z)
+        location = ego_transform.location
+        # Access the rotation (pitch, yaw, roll)
+        rotation = ego_transform.rotation
+
         if current_time <= 10:
             # First XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180) # Convert degrees to radians
@@ -52,45 +62,40 @@ class CustomControlNode(Node):
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0.0 * (pi / 180)
             msg.speed = 0 / 3.6
+            
 
-        elif current_time <= 22.9:
+        elif (98 < rotation.yaw <180 or -180 <rotation.yaw <-87)  and not self.u_turned:
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 45.0 * (pi / 180)
             msg.speed = 30 / 3.6
- 
-        else: 
+            
 
-            ego_transform = self.ego_vehicle.get_transform()
+        elif location.y < 62:
+            self.u_turned = True
+            # Next XX seconds: XX kph XX degrees steering angle
+            msg.speed = self.twist.linear.x
+            msg.steering_angle = self.twist.angular.z
+            # msg.steering_angle = 0.0 * (pi / 180)
+            # msg.speed = 30 / 3.6
+            
+        else:
+            print("Start turning")
+            msg.steering_angle = 33 * (pi / 180)
+            msg.speed = 30 / 3.6
 
-            # Access the location (x, y, z)
-            location = ego_transform.location
+            if self.turn_start < 0:
+                self.turn_start = time()
 
+            if time() - self.turn_start > 4:
 
-            if location.y < 60:
-                # Next XX seconds: XX kph XX degrees steering angle
-                msg.speed = self.twist.linear.x
-                msg.steering_angle = self.twist.angular.z
-                # msg.steering_angle = 0.0 * (pi / 180)
-                # msg.speed = 30 / 3.6
-                
-            else:
-                print("Start turning")
-                msg.steering_angle = 33 * (pi / 180)
-                msg.speed = 30 / 3.6
+                # Stop after XX seconds
+                msg.steering_angle = 0.0
+                # msg.speed = 0.0
 
-                if self.turn_start < 0:
-                    self.turn_start = time()
-
-                if time() - self.turn_start > 4:
-
-                    # Stop after XX seconds
-                    msg.steering_angle = 0.0
-                    # msg.speed = 0.0
-
-                    action_msg = Bool()
-                    action_msg.data = True # Set action flag to True
-                    self.action_publisher.publish(action_msg) # Publish the action flag
-                    self.get_logger().info('U-Turn is done. Notifying the master.') # Log the detection
+                action_msg = Bool()
+                action_msg.data = True # Set action flag to True
+                self.action_publisher.publish(action_msg) # Publish the action flag
+                self.get_logger().info('U-Turn is done. Notifying the master.') # Log the detection
 
 
         # elif current_time <= 31.4:

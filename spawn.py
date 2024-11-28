@@ -66,6 +66,9 @@ def main(world = None):
     client.set_timeout(10.0)
     world = client.get_world()
 
+    #world.get_settings().set('width', 1920)
+    #world.get_settings().set('height', 1080)
+
 
     # Set the world to nighttime
 
@@ -194,7 +197,7 @@ def main(world = None):
 
    specific_vehicle_type4 = 'vehicle.citroen.c3'  # Overtaken Car
 
-   spawn_location5 = (16, 69.9, 2.0)  # Example location (x, y, z)
+   spawn_location5 = (15.5, 69.9, 2.0)  # Example location (x, y, z)
 
    spawn_rotation5 = (0, 0, 0)  # Example rotation (pitch, yaw, roll)
 
@@ -212,7 +215,7 @@ def main(world = None):
 
    specific_walker_type2 = 'walker.pedestrian.0036'  # Victim
 
-   spawn_location7 = (108.2, 26.3, 2.0)  # Example location (x, y, z)
+   spawn_location7 = (108.2, 22.3, 1.0)  # Example location (x, y, z)
 
    spawn_rotation7 = (90, 90, 0)  # Example rotation (pitch, yaw, roll)
 
@@ -221,7 +224,7 @@ def main(world = None):
 
    specific_walker_type3 = 'walker.pedestrian.0031'  # Example vehicle type
 
-   spawn_location8 = (110.2, 26.3, 2.0)  # Example location (x, y, z)
+   spawn_location8 = (110.2, 22.3, 1.0)  # Example location (x, y, z)
 
    spawn_rotation8 = (0, 180, 0)  # Example rotation (pitch, yaw, roll)
 
@@ -230,7 +233,7 @@ def main(world = None):
 
    specific_walker_type4 = 'walker.pedestrian.0032'  # Example vehicle type
 
-   spawn_location9 = (110.2, 28.3, 2.0)  # Example location (x, y, z)
+   spawn_location9 = (110.2, 24.3, 1.0)  # Example location (x, y, z)
 
    spawn_rotation9 = (0, 180, 0)  # Example rotation (pitch, yaw, roll)
 
@@ -239,7 +242,7 @@ def main(world = None):
 
    specific_walker_type5 = 'walker.pedestrian.0015'  # Example vehicle type
 
-   spawn_location10 = (110.2, 24.3, 2.0)  # Example location (x, y, z)
+   spawn_location10 = (110.2, 20.3, 1.0)  # Example location (x, y, z)
 
    spawn_rotation10 = (0, 180, 0)  # Example rotation (pitch, yaw, roll)
 
