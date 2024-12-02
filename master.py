@@ -130,7 +130,7 @@ class VehicleControlNode(Node):
 
         if self.sub_control is None:
             # Start the control node in the executor
-            self.sub_control = highway_control.CombinedControlNode()
+            self.sub_control = highway_control.CombinedControlNode(self.world)
             self.executor.add_node(self.sub_control)
         
 

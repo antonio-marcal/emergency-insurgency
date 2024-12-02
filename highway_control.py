@@ -5,7 +5,7 @@ from std_msgs.msg import Float32, Bool
 from ackermann_msgs.msg import AckermannDrive
 
 class CombinedControlNode(Node):
-    def __init__(self):
+    def __init__(self, world):
         super().__init__('combined_control_node')
 
         # Publishers and Subscribers
@@ -18,6 +18,17 @@ class CombinedControlNode(Node):
         # Timer to publish both speed and steering together
         self.timer = self.create_timer(0.05, self.publish_control_command)
 
+        self.ego_vehicle = None
+
+        if world is not None:
+            for actor in world.get_actors().filter('vehicle.*'):
+                if 'ego_vehicle' in actor.attributes['role_name']:  # Check if the actor is the ego vehicle
+                    self.ego_vehicle = actor
+                    break  # Stop once we find the ego vehicle
+
+            if self.ego_vehicle is None:
+                print("Ego vehicle not found!")
+
     def control_steering(self, msg):
         """Callback for updating the lane center offset for lateral control."""
         self.lane_offset = msg.data
@@ -26,17 +37,24 @@ class CombinedControlNode(Node):
     def publish_control_command(self):
         """Publish Ackermann drive message with both speed and steering angle."""
         drive_msg = AckermannDrive()
+
+        if self.ego_vehicle is not None:
+            ego_transform = self.ego_vehicle.get_transform()
+            # Access the rotation (pitch, yaw, roll)
+            rotation = ego_transform.rotation
         
         # Adjust steering angle based on lane offset and the nature of the turn
-        if abs(self.lane_offset) < 0.06:  # Small offset, indicating a straight or nearly straight lane
-            steering_angle = -self.lane_offset  # Small correction
+        if abs(self.lane_offset) < 0.0002:
+            res = round(rotation.yaw / 90)
+            steering_angle = (rotation.yaw - res * 90.0)*0.1
+            max_steering_angle = 10.0  # Smaller max steering angle for straight roads
+
+        elif abs(self.lane_offset) < 0.04:  # Small offset, indicating a straight or nearly straight lane
+            steering_angle = -self.lane_offset*0.8  # Small correction
             max_steering_angle = 0.5  # Smaller max steering angle for straight roads
-        elif abs(self.lane_offset)<0.1:
-            steering_angle = -self.lane_offset * 2  # Larger scaling for sharper turns
-            max_steering_angle = 1.3  # Larger max steering angle for turns
         else:  # Larger offset, indicating a turn
-            steering_angle = -self.lane_offset * 5  # Larger scaling for sharper turns
-            max_steering_angle = 1.3  # Larger max steering angle for turns
+            steering_angle = -self.lane_offset * 4  # Larger scaling for sharper turns
+            max_steering_angle = 1.5  # Larger max steering angle for turns
             
         # Clamp steering angle within the max bounds
         drive_msg.steering_angle = max(-max_steering_angle, min(max_steering_angle, steering_angle))
