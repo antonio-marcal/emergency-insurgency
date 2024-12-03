@@ -72,7 +72,7 @@ class CombinedControlNode(Node):
         # Clamp steering angle within the max bounds
         drive_msg.steering_angle = max(-max_steering_angle, min(max_steering_angle, steering_angle))
         
-        drive_msg.speed = 12.0  # Move forward at default speed
+        drive_msg.speed = 6.0  # Move forward at default speed
         
         # Log the control command for debugging
         #self.get_logger().info(f'Publishing control command: speed={drive_msg.speed}, steering_angle={drive_msg.steering_angle}')
