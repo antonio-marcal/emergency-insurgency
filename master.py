@@ -160,7 +160,7 @@ class VehicleControlNode(Node):
                 self.phase_4()
             elif self.current_fase == 5:
                 self.destroy_nodes()
-                time.sleep(5)
+                #time.sleep(5)
                 self.phase_5()
             elif self.current_fase == 6:
                 self.destroy_nodes()

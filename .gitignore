@@ -163,3 +163,4 @@ output.csv
 *.cfg
 *.names
 saved_images/
+*.mp4

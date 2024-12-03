@@ -49,7 +49,7 @@ class SemanticCameraNode(Node):
             if self.ego_vehicle is None:
                 print("Ego vehicle not found!")
 
-        self.cte_log_file = 'lane_cte.csv'
+        self.cte_log_file = 'lane_cte_V12.csv'
         with open(self.cte_log_file,'w',newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Time','CTE'])
@@ -102,7 +102,7 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if rotation.yaw<=-21:
+            if rotation.yaw<=-22:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
