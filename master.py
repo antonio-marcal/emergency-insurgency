@@ -13,9 +13,10 @@ import destroy_actor
 import highway_detector
 import carla
 import highway_control
+import time
 
 class VehicleControlNode(Node):
-    def __init__(self, executor, world):
+    def __init__(self, executor, world,ego_vehicle):
         super().__init__('vehicle_control_node')
 
         # Publisher to send driving commands to the vehicle
@@ -60,7 +61,7 @@ class VehicleControlNode(Node):
         self.speed=10000
 
         self.world = world
-
+        self.ego_vehicle = ego_vehicle
         
     def phase_1(self):
         if self.sub_detection is None:
@@ -112,6 +113,7 @@ class VehicleControlNode(Node):
     def phase_5(self):
         destroy_actor.destroy_actor('*pedestrian.0036*', self.world)
 
+
         if self.sub_detection is None:
             # Start the detection node in the executor
             self.sub_detection = highway_detector.HighwayDetectionNode(self.world)
@@ -132,7 +134,15 @@ class VehicleControlNode(Node):
             # Start the control node in the executor
             self.sub_control = highway_control.CombinedControlNode(self.world)
             self.executor.add_node(self.sub_control)
-        
+
+    def phase_7(self):
+        specific_walker_type = 'walker.pedestrian.0036'  # Victim
+        spawn_location = (-40.2, 144.1, 0.1)  # Example location (x, y, z)
+        spawn_rotation = (90, 0, 0)  # Example rotation (pitch, yaw, roll)
+        spawn.spawn_specific_vehicle(self.world, self.world.get_blueprint_library(),
+                                     specific_walker_type, spawn_location, spawn_rotation)
+        self.action_flag = True
+
 
     def drive(self):
         """Choose which control and detection node to use"""
@@ -150,10 +160,16 @@ class VehicleControlNode(Node):
                 self.phase_4()
             elif self.current_fase == 5:
                 self.destroy_nodes()
+                time.sleep(5)
                 self.phase_5()
             elif self.current_fase == 6:
                 self.destroy_nodes()
                 self.phase_6()
+            elif self.current_fase == 7:
+                self.destroy_nodes()
+                self.phase_7()
+            else: 
+                self.destroy_nodes()
 
         else:
             if self.sub_detection is not None:
@@ -169,11 +185,12 @@ class VehicleControlNode(Node):
                 self.sub_control = None
 
             
-            if self.current_fase in (1, 4):
+            if self.current_fase in (1, 4, 6):
                 self.brake()
                 if self.speed<1e-4:
                     self.current_fase += 1
                     self.action_flag = False
+                    self.ego_vehicle.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Special1 | carla.VehicleLightState.LowBeam | carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker))
 
             else:
                 self.current_fase += 1
@@ -194,6 +211,7 @@ class VehicleControlNode(Node):
             self.action_flag = True
 
     def brake(self):
+        self.ego_vehicle.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Special1 | carla.VehicleLightState.LowBeam | carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker | carla.VehicleLightState.Brake))
         """Stop the vehicle by setting the speed to zero."""
         drive_msg = AckermannDrive()
         drive_msg.speed = 0.0
@@ -216,15 +234,29 @@ class VehicleControlNode(Node):
 def main(args=None):
     client = carla.Client('localhost', 2000)
     world = client.get_world()
+    spectator = world.get_spectator()
+    spectator.set_transform(carla.Transform(carla.Location(x=-7,y=35,z=155),
+                                            carla.Rotation(pitch=-90, yaw=-90)))
 
     traffic_manager = client.get_trafficmanager()
     traffic_manager.set_hybrid_physics_mode(False)
 
     spawn.main(world)
 
+    for actor in world.get_actors().filter('vehicle.*'):
+        if 'ego_vehicle' in actor.attributes['role_name']:  # Check if the actor is the ego vehicle
+            ego_vehicle = actor
+            break  # Stop once we find the ego vehicle
+
+    if ego_vehicle is None:
+        print("Ego vehicle not found!")
+
+    # Turn on the headlights
+    ego_vehicle.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Special1 | carla.VehicleLightState.LowBeam | carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker))
+
     rclpy.init(args=args)  # Initialize the ROS2 Python library
     executor = rclpy.executors.MultiThreadedExecutor()
-    node = VehicleControlNode(executor, world)  # Create an instance of the VehicleControlNode
+    node = VehicleControlNode(executor, world,ego_vehicle)  # Create an instance of the VehicleControlNode
 
     # Create the MultiThreadedExecutor to handle multiple nodes concurrently
     

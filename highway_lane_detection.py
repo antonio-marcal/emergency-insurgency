@@ -9,7 +9,7 @@ import os
 import cv2
 
 class SemanticCameraNode(Node):
-  def __init__(self):
+  def __init__(self, world):
       super().__init__('semantic_camera_node')
       self.subscription = self.create_subscription(
           Image,
@@ -19,11 +19,22 @@ class SemanticCameraNode(Node):
       )
       self.bridge = CvBridge()
       self.lane_offset_publisher = self.create_publisher(Float32, '/lane_center_offset',10)
-      self.stop_signal_publisher = self.create_publisher(Bool, '/stop_signal', 10)
+        
       self.image_counter = 1
       # Update the path to a valid location (e.g., inside the current user's directory)
       self.image_path = '/home/cae-user/Documents/highway_camera_output/'  # Change this path if needed
       os.makedirs(self.image_path, exist_ok=True)
+
+      self.ego_vehicle = None
+
+      if world is not None:
+        for actor in world.get_actors().filter('vehicle.*'):
+            if 'ego_vehicle' in actor.attributes['role_name']:  # Check if the actor is the ego vehicle
+                self.ego_vehicle = actor
+                break  # Stop once we find the ego vehicle
+
+        if self.ego_vehicle is None:
+            print("Ego vehicle not found!")
       
   def listener_callback(self, msg):
       cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')

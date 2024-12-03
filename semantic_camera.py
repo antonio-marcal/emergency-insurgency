@@ -9,7 +9,7 @@ import numpy as np
 import os
 import cv2
 import time
-
+import csv
 
 class SemanticCameraNode(Node):
     def __init__(self, dumb_mode = False, world = None):
@@ -49,6 +49,11 @@ class SemanticCameraNode(Node):
             if self.ego_vehicle is None:
                 print("Ego vehicle not found!")
 
+        self.cte_log_file = 'lane_cte.csv'
+        with open(self.cte_log_file,'w',newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Time','CTE'])
+
     def listener_callback(self, msg):
         # Convert image to OpenCV format
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -71,6 +76,11 @@ class SemanticCameraNode(Node):
         lane_offset_msg.data = lane_center_offset
         self.lane_offset_publisher.publish(lane_offset_msg)
 
+
+        with open(self.cte_log_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([time.time(), lane_center_offset])
+
         # Detect if a vehicle is in front and publish the detection status
         vehicle_in_front = self.detect_vehicle_in_front(vehicle_mask)
         vehicle_in_front_msg = Bool()
@@ -92,7 +102,7 @@ class SemanticCameraNode(Node):
             self.timeout = time.time()
 
         elif self.stage == 0:
-            if rotation.yaw<=-22:
+            if rotation.yaw<=-21:
                 # Transition from obstacle detected to left lane state
                 self.vehicle_in_front = False
                 self.stage = 1
@@ -120,14 +130,14 @@ class SemanticCameraNode(Node):
                 self.maintain_lane(lane_center_offset, 9.0)
 
         elif self.stage == 3:
-            if rotation.yaw>=24:
+            if rotation.yaw>=25:
                 self.stage = 4
                 self.timeout = time.time()
                 self.get_logger().info("Vehicle cleared. Maitaining Right lane.")
                 self.straigthen_lane(4.0,1.0)
 
         elif self.stage == 4:
-            if rotation.yaw<=18:
+            if rotation.yaw<=21:
                 self.stage = -1
 
         else:

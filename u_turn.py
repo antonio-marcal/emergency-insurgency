@@ -54,6 +54,7 @@ class CustomControlNode(Node):
         rotation = ego_transform.rotation
 
         if current_time <= 10:
+            self.ego_vehicle.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Special1 | carla.VehicleLightState.LowBeam | carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker | carla.VehicleLightState.Reverse))
             # First XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 0 * (pi / 180) # Convert degrees to radians
             msg.speed = -30 / 3.6 # Convert kph to mps
@@ -65,6 +66,7 @@ class CustomControlNode(Node):
             
 
         elif (98 < rotation.yaw <180 or -180 <rotation.yaw <-87)  and not self.u_turned:
+            self.ego_vehicle.set_light_state(carla.VehicleLightState(carla.VehicleLightState.Special1 | carla.VehicleLightState.LowBeam | carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker))
             # Next XX seconds: XX kph XX degrees steering angle
             msg.steering_angle = 45.0 * (pi / 180)
             msg.speed = 30 / 3.6

@@ -12,6 +12,12 @@ class CombinedControlNode(Node):
         self.control_publisher = self.create_publisher(AckermannDrive, '/carla/ego_vehicle/ackermann_cmd', 10)
         self.create_subscription(Float32, '/lane_center_offset', self.control_steering, 10)
 
+        # Publisher to send a stop flag when a stop sign is detected
+        self.stop_publisher = self.create_publisher(
+            Bool, # Message type
+            '/carla/ego_vehicle/action_flag', # Topic name
+            10) # Queue size
+
         # Initialize variables for speed and steering
         self.lane_offset = 0.0  # Default lane center offset
         self.stop_flag = False  # Default stop signal flag
@@ -42,6 +48,13 @@ class CombinedControlNode(Node):
             ego_transform = self.ego_vehicle.get_transform()
             # Access the rotation (pitch, yaw, roll)
             rotation = ego_transform.rotation
+            location = ego_transform.location
+
+        if abs(location.x - -41.2) < 4 and abs(location.y - 145.1) < 10:
+            stop_msg = Bool()
+            stop_msg.data = True # Set stop flag to True
+            self.stop_publisher.publish(stop_msg) # Publish the stop flag
+            self.get_logger().info('Hospital Reached. Asking the master to break.') # Log the detection
         
         # Adjust steering angle based on lane offset and the nature of the turn
         if abs(self.lane_offset) < 0.0002:

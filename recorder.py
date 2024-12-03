@@ -62,7 +62,7 @@ class PurePursuitController(Node):
     
     def __del__(self):
         # Write the logged vehicle states to a CSV file
-        with open("output.csv", 'w') as csvfile:
+        with open("trajectory_uturn_2.3.csv", 'w') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(['time', 'x', 'y', 'speed'])
             csvwriter.writerows(self.rows)

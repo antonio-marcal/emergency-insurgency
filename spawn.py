@@ -215,7 +215,7 @@ def main(world = None):
 
    specific_walker_type2 = 'walker.pedestrian.0036'  # Victim
 
-   spawn_location7 = (108.2, 22.3, 1.0)  # Example location (x, y, z)
+   spawn_location7 = (108.2, 22.3, 0.1)  # Example location (x, y, z)
 
    spawn_rotation7 = (90, 90, 0)  # Example rotation (pitch, yaw, roll)
 
