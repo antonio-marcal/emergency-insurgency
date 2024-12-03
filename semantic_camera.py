@@ -27,6 +27,8 @@ class SemanticCameraNode(Node):
         self.velocity_publisher = self.create_publisher(Twist, '/carla/ego_vehicle/cmd_vel', 10)
         self.vehicle_in_front_publisher = self.create_publisher(Bool, '/vehicle_in_front', 10)
 
+        self.centertlines_publisher = self.create_publisher(Image, '/carla/ego_vehicle/semantic_segmentation_front/centerlines', 10)
+
         self.image_counter = 1
         self.image_path = '/home/cae-user/Documents/semantic_camera_output/'  # Change this path if needed
         os.makedirs(self.image_path, exist_ok=True)
@@ -103,7 +105,13 @@ class SemanticCameraNode(Node):
             cv2.drawContours(overlay_image, lane_line_contours, -1, (0, 0, 255), 2)  # Red color for lane lines
 
         # Save the overlaid image
-        cv2.imwrite(filename, overlay_image)
+        cv2.imwrite(filename, cv_image)
+
+        # Convert the overlaid image back to ROS message format
+        overlay_image_msg = self.bridge.cv2_to_imgmsg(overlay_image, encoding="bgr8")
+
+        # Publish the overlaid image
+        self.centertlines_publisher.publish(overlay_image_msg)
 
         self.image_counter += 1
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
