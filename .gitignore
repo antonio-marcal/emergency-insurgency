@@ -164,3 +164,5 @@ output.csv
 *.names
 saved_images/
 *.mp4
+semantic_camera_centerlines
+semantic_camera_OG
